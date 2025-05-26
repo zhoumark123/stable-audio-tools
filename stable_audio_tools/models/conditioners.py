@@ -71,12 +71,15 @@ class NumberConditioner(Conditioner):
 
         self.embedder = NumberEmbedder(features=output_dim)
 
-    def forward(self, floats: tp.List[float], device=None) -> tp.Any:
+    def forward(self, floats, device=None) -> tp.Any:
     
+            # Removed because tracing treats inputs as constant if converted to float
             # Cast the inputs to floats
-            floats = [float(x) for x in floats]
+            # floats = [float(x) for x in floats]
 
-            floats = torch.tensor(floats).to(device)
+            floats = torch.tensor(floats).to(device) 
+
+            # print(floats.shape) # torch.Size([1]) 
 
             floats = floats.clamp(self.min_val, self.max_val)
     
