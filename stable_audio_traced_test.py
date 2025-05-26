@@ -13,7 +13,7 @@ example_seconds = 5
 
 traced_model_path = "traced_stable_audio_open.pt"
 
-print(f"Loading traced model from {traced_model_path}")
+print(f"Loading traced model from {traced_model_path}...")
 generate_audio_traced = torch.jit.load(traced_model_path)
 print("Successfully loaded traced model")
 

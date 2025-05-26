@@ -25,31 +25,13 @@ for p in model.parameters():
 
 model.eval()
 
-
-# Monkey patch the checkpoint function
-def no_checkpoint(function, *args, **kwargs):
-    return function(*args)
-
-# Replace checkpoint calls with direct function calls during tracing
-import stable_audio_tools.models.transformer as transformer_module
-import stable_audio_tools.models.local_attention as local_attention_module
-import stable_audio_tools.models.autoencoders as autoencoders_module
-import stable_audio_tools.models.convnext as convnext_module
-import stable_audio_tools.models.encodec as encodec_module
-import stable_audio_tools.models.discriminators as discriminators_module
-
-transformer_module.checkpoint = no_checkpoint
-local_attention_module.checkpoint = no_checkpoint
-autoencoders_module.checkpoint = no_checkpoint
-convnext_module.checkpoint = no_checkpoint
-encodec_module.checkpoint = no_checkpoint
-discriminators_module.checkpoint = no_checkpoint
-
-
 def generate_audio_from_tokens(input_ids, seconds_total_val):
     # seconds_total_val needs to be a float tensor of shape torch.Size([1])
     global model, sample_size, device, max_token_length
     
+    input_ids = input_ids.to(device)
+    seconds_total_val = seconds_total_val.to(device)
+
     # Pad input_ids to max_token_length if needed
     current_length = input_ids.shape[1]
     if current_length < max_token_length:
@@ -62,9 +44,6 @@ def generate_audio_from_tokens(input_ids, seconds_total_val):
     attention_mask = (input_ids != 0).to(torch.bool)    
     token_ids = input_ids.to(device)
     attention_mask = attention_mask.to(device)
-
-    print("padded token_ids: ", token_ids)
-    print("padded attn mask: ", attention_mask)
 
     with torch.no_grad():
         prompt_conditioner = model.conditioner.conditioners["prompt"]
@@ -94,21 +73,22 @@ def generate_audio_from_tokens(input_ids, seconds_total_val):
 
         output = generate_diffusion_cond(
             model,
-            steps=10,
+            steps=100,
             cfg_scale=7,
             conditioning_tensors=conditioning_tensors,
             sample_size=sample_size,
             sigma_min=0.3,
             sigma_max=500,
             sampler_type="dpmpp-3m-sde",
-            device=device
+            device=device, 
+            use_checkpointing=False
         )
 
     return output
 
-t5_tokenizer = model.conditioner.conditioners["prompt"].tokenizer
+# t5_tokenizer = model.conditioner.conditioners["prompt"].tokenizer
 pretrained_tokenizer = AutoTokenizer.from_pretrained("t5-base")
-tokenized_inputs_dummy = t5_tokenizer(
+tokenized_inputs_dummy = pretrained_tokenizer(
     example_prompt,
     return_tensors="pt",
 )
@@ -124,27 +104,26 @@ print(f"Tokenized inputs shape: {tokenized_inputs_dummy['input_ids'].shape}")
 print(f"Tokenized inputs: {tokenized_inputs_dummy['input_ids']}")
 print(f"Tokenized inputs attention mask: {tokenized_inputs_dummy['attention_mask']}")
 
-# generate_audio_traced = torch.jit.trace(generate_audio_from_tokens, 
-#                                         (tokenized_inputs_dummy["input_ids"], dummy_seconds_tensor), 
-#                                         check_trace=False)
-# print("Successfully traced generate_audio_from_tokens.")
+generate_audio_traced = torch.jit.trace(generate_audio_from_tokens, 
+                                        (tokenized_inputs_dummy["input_ids"], dummy_seconds_tensor), 
+                                        check_trace=False)
+print("Successfully traced generate_audio_from_tokens.")
 
-# print("Running inference with the traced model...")
+print("Running inference with the traced model...")
 torch.mps.empty_cache()
 import gc
 gc.collect()
 
-output = generate_audio_from_tokens(tokenized_inputs_dummy["input_ids"], dummy_seconds_tensor)
+output = generate_audio_traced(tokenized_inputs_dummy["input_ids"], dummy_seconds_tensor)
 
 # Rearrange audio batch to a single sequence
 output = rearrange(output, "b d n -> d (b n)")
-
 
 # Peak normalize, clip, convert to int16, and save to file
 output = output.to(torch.float32).div(torch.max(torch.abs(output))).clamp(-1, 1).mul(32767).to(torch.int16).cpu()
 torchaudio.save("output.wav", output, sample_rate)
 
-# # print("Successfully saved audio to output.wav")
-# print("Attempting to save traced model with torch.jit.save...")
-# torch.jit.save(generate_audio_traced, "traced_stable_audio_open.pt")
-# print("Successfully saved with torch.jit.save")
+print("Successfully saved audio to output.wav")
+print("Attempting to save traced model with torch.jit.save...")
+torch.jit.save(generate_audio_traced, "traced_stable_audio_open.pt")
+print("Successfully saved with torch.jit.save")

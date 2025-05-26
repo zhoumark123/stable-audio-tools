@@ -33,17 +33,12 @@ for p in model.parameters():
 
 model.eval()
 
-# Monkey patch the checkpoint function to avoid the issue
-original_checkpoint = torch.utils.checkpoint.checkpoint
-def no_checkpoint(function, *args, **kwargs):
-    return function(*args)
-
-
 def generate_audio_from_tokens(input_ids, seconds_total_val):
     # seconds_total_val needs to be a float tensor of shape torch.Size([1])
     global model, sample_rate, device, max_token_length
 
     input_ids = input_ids.to(device)
+    seconds_total_val = seconds_total_val.to(device)
     # Pad input_ids to max_token_length if needed
     current_length = input_ids.shape[1]
     if current_length < max_token_length:
@@ -86,7 +81,8 @@ def generate_audio_from_tokens(input_ids, seconds_total_val):
             steps=8,
             conditioning_tensors=conditioning_tensors,
             sample_size=sample_size,
-            # sampler_type="pingpong",
+            sampler_type="pingpong",
+            cfg_scale=1,
             device=str(device), 
             use_checkpointing=False
         )
@@ -121,7 +117,7 @@ print("Running inference with the traced model...")
 
 
 # test with different inputs
-prompt = "Latin Funk Drumset 115 BPM Stereo"
+prompt = "128 bpm uk garage drum loop"
 seconds_total = 11
 seconds_total_tensor = torch.tensor([seconds_total], device=device, dtype=torch.float32)
 # Test with pretrained tokenizer
@@ -134,7 +130,7 @@ print(f"Tokenized inputs shape: {tokenized_inputs['input_ids'].shape}")
 print(f"Tokenized inputs: {tokenized_inputs['input_ids']}")
 print(f"Tokenized inputs attention mask: {tokenized_inputs['attention_mask']}")
 
-for i in range(1):
+for i in range(5):
 
     output_from_traced = traced_generate_audio_fn(tokenized_inputs["input_ids"], seconds_total_tensor)
     
