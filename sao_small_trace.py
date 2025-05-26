@@ -86,7 +86,8 @@ def generate_audio_from_tokens(input_ids, seconds_total_val):
             device=str(device), 
             use_checkpointing=False
         )
-    return output
+        output_processed_traced = rearrange(output, "b d n -> d (b n)")
+    return output_processed_traced
 
 # Get the T5 tokenizer from the model
 
@@ -130,14 +131,13 @@ print(f"Tokenized inputs shape: {tokenized_inputs['input_ids'].shape}")
 print(f"Tokenized inputs: {tokenized_inputs['input_ids']}")
 print(f"Tokenized inputs attention mask: {tokenized_inputs['attention_mask']}")
 
-for i in range(5):
+for i in range(1):
 
     output_from_traced = traced_generate_audio_fn(tokenized_inputs["input_ids"], seconds_total_tensor)
     
     print(f"Output from traced model shape: {output_from_traced.shape}")
     # Process and save the output from the traced model
-    output_processed_traced = rearrange(output_from_traced, "b d n -> d (b n)")
-    output_processed_traced = output_processed_traced.to(torch.float32).div(torch.max(torch.abs(output_processed_traced))).clamp(-1, 1).mul(32767).to(torch.int16).cpu()
+    output_processed_traced = output_from_traced.to(torch.float32).div(torch.max(torch.abs(output_from_traced))).clamp(-1, 1).mul(32767).to(torch.int16).cpu()
     traced_output_path = f"output_from_traced_{i}.wav"
     torchaudio.save(traced_output_path, output_processed_traced, sample_rate)
     print(f"Saved audio from traced model to {traced_output_path}")
