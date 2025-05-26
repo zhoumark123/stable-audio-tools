@@ -38,21 +38,6 @@ original_checkpoint = torch.utils.checkpoint.checkpoint
 def no_checkpoint(function, *args, **kwargs):
     return function(*args)
 
-# Replace checkpoint calls with direct function calls during tracing
-# import stable_audio_tools.models.transformer as transformer_module
-# import stable_audio_tools.models.local_attention as local_attention_module
-# import stable_audio_tools.models.autoencoders as autoencoders_module
-# import stable_audio_tools.models.convnext as convnext_module
-# import stable_audio_tools.models.encodec as encodec_module
-# import stable_audio_tools.models.discriminators as discriminators_module
-
-# transformer_module.checkpoint = no_checkpoint
-# local_attention_module.checkpoint = no_checkpoint
-# autoencoders_module.checkpoint = no_checkpoint
-# convnext_module.checkpoint = no_checkpoint
-# encodec_module.checkpoint = no_checkpoint
-# discriminators_module.checkpoint = no_checkpoint
-
 
 def generate_audio_from_tokens(input_ids, seconds_total_val):
     # seconds_total_val needs to be a float tensor of shape torch.Size([1])
@@ -102,7 +87,8 @@ def generate_audio_from_tokens(input_ids, seconds_total_val):
             conditioning_tensors=conditioning_tensors,
             sample_size=sample_size,
             # sampler_type="pingpong",
-            device=str(device)
+            device=str(device), 
+            use_checkpointing=False
         )
     return output
 
