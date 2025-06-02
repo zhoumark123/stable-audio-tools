@@ -3,15 +3,16 @@ import torchaudio
 from einops import rearrange
 from transformers import AutoTokenizer
 import os
-
+import time
 # Define device
 device = "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
-
-traced_model = torch.jit.load("traced_generate_audio_fn.pt")
+start_time = time.time()
+traced_model = torch.jit.load("traced_saos.pt")
+print(f"Time taken to load traced_saos.pt: {time.time() - start_time}")
 traced_model.eval() # Ensure the model is in evaluation mode
-print("Successfully loaded traced_generate_audio_fn.pt")
+print("Successfully loaded traced_saos.pt")
 
 
 test_prompt = "A funky bassline in a minor key"

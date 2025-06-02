@@ -19,7 +19,7 @@ example_seconds = 11
 model, model_config = get_pretrained_model("stabilityai/stable-audio-open-small")
 
 sample_rate = model_config["sample_rate"]
-sample_size = example_seconds * sample_rate
+sample_size = model_config["sample_size"]
 max_token_length = model.conditioner.conditioners["prompt"].max_length # is 64 from configs
 
 model = model.to(device)
@@ -142,4 +142,4 @@ for i in range(1):
     torchaudio.save(traced_output_path, output_processed_traced, sample_rate)
     print(f"Saved audio from traced model to {traced_output_path}")
 
-torch.jit.save(traced_generate_audio_fn, "traced_generate_audio_fn.pt")
+torch.jit.save(traced_generate_audio_fn, "traced_saos.pt")
