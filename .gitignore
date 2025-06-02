@@ -163,5 +163,6 @@ cython_debug/
 *.wav
 wandb/*
 *.wav
+*.mp3
 *.pt
 *.DS_Store
