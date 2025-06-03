@@ -3,15 +3,15 @@ import torchaudio
 from einops import rearrange
 from transformers import AutoTokenizer
 import os
-
+import time
 # Define device
-device = "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
+device = "cpu"
 print(f"Using device: {device}")
 
-
-traced_model = torch.jit.load("traced_sao_small_a2a.pt")
+start_time = time.time()
+traced_model = torch.jit.load("traced_sao_small_a2a_cpu.pt")
+print(f"Successfully loaded traced_sao_small_a2a_cpu.pt in {time.time() - start_time} seconds")
 traced_model.eval()
-print("Successfully loaded traced_sao_small_a2a.pt")
 
 init_audio_tensor, init_audio_sample_rate = torchaudio.load("sample_rhodes.mp3")
 init_audio_tensor = torchaudio.transforms.Resample(init_audio_sample_rate, 44100)(init_audio_tensor)
@@ -35,8 +35,9 @@ print(f"Test prompt: \"{test_prompt}\"")
 print(f"Input IDs shape: {input_ids.shape}")
 print(f"Seconds tensor: {seconds_total_tensor}")
 
-
+start_time = time.time()
 output_from_traced = traced_model(tokenized_inputs["input_ids"], seconds_total_tensor, init_audio_tensor, init_noise_level)
+print(f"Time taken to generate audio from traced model: {time.time() - start_time} seconds")
 print(f"Output from traced model shape: {output_from_traced.shape}")
 
 

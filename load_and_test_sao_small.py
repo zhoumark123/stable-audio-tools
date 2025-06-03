@@ -1,19 +1,19 @@
 import torch
 import torchaudio
-from einops import rearrange
 from transformers import AutoTokenizer
 import os
 import time
-# Define device
-device = "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
+
+device = "cpu"
 print(f"Using device: {device}")
 
 start_time = time.time()
-traced_model = torch.jit.load("traced_saos.pt")
+traced_model = torch.jit.load("traced_saos_cpu.pt", map_location="cpu")
 print(f"Time taken to load traced_saos.pt: {time.time() - start_time}")
-traced_model.eval() # Ensure the model is in evaluation mode
-print("Successfully loaded traced_saos.pt")
-
+print("nodes :", len(list(traced_model.graph.nodes())))
+print("consts:", sum(1 for n in traced_model.graph.nodes() if n.kind() == "prim::Constant"))
+traced_model.eval()
+traced_model.to(device)
 
 test_prompt = "A funky bassline in a minor key"
 test_seconds = 5  # Duration in seconds
@@ -34,8 +34,9 @@ print(f"Test prompt: \"{test_prompt}\"")
 print(f"Input IDs shape: {input_ids.shape}")
 print(f"Seconds tensor: {seconds_total_tensor}")
 
-
+start_time = time.time()
 output_from_traced = traced_model(tokenized_inputs["input_ids"], seconds_total_tensor)
+print(f"Time taken to run traced model: {time.time() - start_time}")
 print(f"Output from traced model shape: {output_from_traced.shape}")
 
 

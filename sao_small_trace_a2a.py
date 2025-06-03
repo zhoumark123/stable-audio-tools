@@ -3,21 +3,18 @@ import torchaudio
 from einops import rearrange
 from stable_audio_tools import get_pretrained_model
 from stable_audio_tools.inference.generation import generate_diffusion_cond
-import os
-from stable_audio_tools.models.blocks import SnakeBeta
 import torch.nn as nn
 from transformers import AutoTokenizer
-from stable_audio_tools.models.utils import copy_state_dict, load_ckpt_state_dict, remove_weight_norm_from_model
+from sao_small_trace import verify_model_dtypes
 
-device = "mps"
+device = "cpu"
 
-
-example_prompt = "E minor syncopated guitar 115 bpm"
+example_prompt = "Helicopter Circling Around in Stereo"
 example_seconds = 11
 
 model, model_config = get_pretrained_model("stabilityai/stable-audio-open-small")
 
-sample_rate = model_config["sample_rate"] # = 44100
+sample_rate = model_config["sample_rate"]
 sample_size = model_config["sample_size"]
 max_token_length = model.conditioner.conditioners["prompt"].max_length # is 64 from configs
 
@@ -26,10 +23,15 @@ model = model.to(device)
 model.pretransform.model_half = False
 model.to(torch.float32)
 
+t5_model = model.conditioner.conditioners["prompt"].model
+t5_model.to(torch.float32)
+
 for p in model.parameters():
     p.requires_grad = False
 
 model.eval()
+
+verify_model_dtypes(model)
 
 def generate_audio_from_tokens(input_ids, seconds_total_val, init_audio_tensor, init_noise_level):
     # seconds_total_val needs to be a float tensor of shape torch.Size([1])
@@ -146,4 +148,4 @@ for i in range(1):
     torchaudio.save(traced_output_path, output_processed_traced, sample_rate)
     print(f"Saved audio from traced model to {traced_output_path}")
 
-torch.jit.save(traced_generate_audio_fn, "traced_sao_small_a2a.pt")
+torch.jit.save(traced_generate_audio_fn, f"traced_saos_a2a_{device}.pt")
