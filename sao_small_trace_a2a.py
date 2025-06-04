@@ -5,15 +5,10 @@ from stable_audio_tools import get_pretrained_model
 from stable_audio_tools.inference.generation import generate_diffusion_cond
 import torch.nn as nn
 from transformers import AutoTokenizer
-from sao_small_trace import verify_model_dtypes
 
 device = "cpu"
 
-example_prompt = "Helicopter Circling Around in Stereo"
-example_seconds = 11
-
 model, model_config = get_pretrained_model("stabilityai/stable-audio-open-small")
-
 sample_rate = model_config["sample_rate"]
 sample_size = model_config["sample_size"]
 max_token_length = model.conditioner.conditioners["prompt"].max_length # is 64 from configs
@@ -30,8 +25,6 @@ for p in model.parameters():
     p.requires_grad = False
 
 model.eval()
-
-verify_model_dtypes(model)
 
 def generate_audio_from_tokens(input_ids, seconds_total_val, init_audio_tensor, init_noise_level):
     # seconds_total_val needs to be a float tensor of shape torch.Size([1])
@@ -94,6 +87,8 @@ def generate_audio_from_tokens(input_ids, seconds_total_val, init_audio_tensor, 
 
 t5_tokenizer = model.conditioner.conditioners["prompt"].tokenizer
 
+example_prompt = "Helicopter Circling Around in Stereo"
+example_seconds = 11
 tokenized_inputs_dummy = t5_tokenizer(
     example_prompt,
     return_tensors="pt"
@@ -102,11 +97,11 @@ tokenized_inputs_dummy = {
     "input_ids": tokenized_inputs_dummy["input_ids"].to(device),
     "attention_mask": tokenized_inputs_dummy["attention_mask"].to(device)
 }
-dummy_seconds_tensor = torch.tensor([example_seconds], device=device, dtype=torch.float32) # Convert to tensor
+dummy_seconds_tensor = torch.tensor([example_seconds], device=device, dtype=torch.float32)
 
 dummy_init_audio_tensor, dummy_init_audio_sample_rate = torchaudio.load("latin funk drumset 115 bpm.wav")
 dummy_init_audio_tensor = torchaudio.transforms.Resample(dummy_init_audio_sample_rate, sample_rate)(dummy_init_audio_tensor)
-dummy_init_noise_level = torch.tensor(0.85, device=device, dtype=torch.float32)
+dummy_init_noise_level = torch.tensor(1, device=device, dtype=torch.float32)
 
 
 print("Attempting to trace generate_audio_from_tokens...")
@@ -119,9 +114,9 @@ print("Successfully traced generate_audio_from_tokens.")
 print("Running inference with the traced model...")
 
 # test with different inputs
-init_audio_tensor, init_audio_sample_rate = torchaudio.load("driving funk rhythm guitar 115 bpm.wav")
+init_audio_tensor, init_audio_sample_rate = torch.zeros(2, 44100 * 11), 44100
 init_audio_tensor = torchaudio.transforms.Resample(init_audio_sample_rate, sample_rate)(init_audio_tensor)
-init_noise_level = torch.tensor(0.80, device=device, dtype=torch.float32)
+init_noise_level = torch.tensor(1, device=device, dtype=torch.float32)
 prompt = "bright slap funk bassline"
 seconds_total = 11
 seconds_total_tensor = torch.tensor([seconds_total], device=device, dtype=torch.float32)
@@ -137,7 +132,7 @@ print(f"Tokenized inputs shape: {tokenized_inputs['input_ids'].shape}")
 print(f"Tokenized inputs: {tokenized_inputs['input_ids']}")
 print(f"Tokenized inputs attention mask: {tokenized_inputs['attention_mask']}")
 
-for i in range(1):
+for i in range(5):
 
     output_from_traced = traced_generate_audio_fn(tokenized_inputs["input_ids"], seconds_total_tensor, init_audio_tensor, init_noise_level)
     

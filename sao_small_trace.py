@@ -138,7 +138,7 @@ tokenized_inputs_dummy = {
     "input_ids": tokenized_inputs_dummy["input_ids"].to(device),
     "attention_mask": tokenized_inputs_dummy["attention_mask"].to(device)
 }
-dummy_seconds_tensor = torch.tensor([example_seconds], device=device, dtype=torch.float32) # Convert to tensor
+dummy_seconds_tensor = torch.tensor([example_seconds], device=device, dtype=torch.float32)
 
 
 print("Attempting to trace generate_audio_from_tokens...")
@@ -153,7 +153,7 @@ print("Running inference with the traced model...")
 
 
 # test with different inputs
-prompt = "128 bpm uk garage drum loop"
+prompt = "bright slap funk bassline"
 seconds_total = 11
 seconds_total_tensor = torch.tensor([seconds_total], device=device, dtype=torch.float32)
 # Test with pretrained tokenizer
@@ -166,13 +166,13 @@ print(f"Tokenized inputs shape: {tokenized_inputs['input_ids'].shape}")
 print(f"Tokenized inputs: {tokenized_inputs['input_ids']}")
 print(f"Tokenized inputs attention mask: {tokenized_inputs['attention_mask']}")
 
-for i in range(1):
+for i in range(5):
     output_from_traced = traced_generate_audio_fn(tokenized_inputs["input_ids"], seconds_total_tensor)
     
     print(f"Output from traced model shape: {output_from_traced.shape}")
     # Process and save the output from the traced model
     output_processed_traced = output_from_traced.to(torch.float32).div(torch.max(torch.abs(output_from_traced))).clamp(-1, 1).mul(32767).to(torch.int16).cpu()
-    traced_output_path = f"output_from_traced_{i}.wav"
+    traced_output_path = f"output_from_traced_saos_{i}.wav"
     torchaudio.save(traced_output_path, output_processed_traced, sample_rate)
     print(f"Saved audio from traced model to {traced_output_path}")
 

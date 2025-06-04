@@ -9,13 +9,12 @@ device = "cpu"
 print(f"Using device: {device}")
 
 start_time = time.time()
-traced_model = torch.jit.load("traced_sao_small_a2a_cpu.pt")
-print(f"Successfully loaded traced_sao_small_a2a_cpu.pt in {time.time() - start_time} seconds")
+traced_model = torch.jit.load(f"traced_saos_a2a_{device}.pt", map_location=device)
+print(f"Successfully loaded traced_saos_a2a_{device}.pt in {time.time() - start_time} seconds")
 traced_model.eval()
 
-init_audio_tensor, init_audio_sample_rate = torchaudio.load("sample_rhodes.mp3")
-init_audio_tensor = torchaudio.transforms.Resample(init_audio_sample_rate, 44100)(init_audio_tensor)
-init_noise_level = torch.tensor(0.80, device=device, dtype=torch.float32)
+init_audio_tensor, init_audio_sample_rate = torch.zeros(2, 44100 * 11), 44100
+init_noise_level = torch.tensor(1, device=device, dtype=torch.float32)
 
 test_prompt = "bright slap funk bassline"
 test_seconds = 11  # Duration in seconds
