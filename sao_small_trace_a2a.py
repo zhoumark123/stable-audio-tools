@@ -99,7 +99,8 @@ tokenized_inputs_dummy = {
 }
 dummy_seconds_tensor = torch.tensor([example_seconds], device=device, dtype=torch.float32)
 
-dummy_init_audio_tensor, dummy_init_audio_sample_rate = torchaudio.load("latin funk drumset 115 bpm.wav")
+# dummy_init_audio_tensor, dummy_init_audio_sample_rate = torchaudio.load("latin funk drumset 115 bpm.wav")
+dummy_init_audio_tensor, dummy_init_audio_sample_rate = torch.zeros(2, 44100 * 11), 44100
 dummy_init_audio_tensor = torchaudio.transforms.Resample(dummy_init_audio_sample_rate, sample_rate)(dummy_init_audio_tensor)
 dummy_init_noise_level = torch.tensor(1, device=device, dtype=torch.float32)
 

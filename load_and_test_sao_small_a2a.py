@@ -17,8 +17,8 @@ init_audio_tensor, init_audio_sample_rate = torch.zeros(2, 44100 * 11), 44100
 init_noise_level = torch.tensor(1, device=device, dtype=torch.float32)
 
 test_prompt = "bright slap funk bassline"
-test_seconds = 11  # Duration in seconds
-sample_rate = 44100 # Assuming sample rate is 44100, adjust if different from training
+test_seconds = 11
+sample_rate = 44100
 
 tokenizer = AutoTokenizer.from_pretrained("t5-base")
 
